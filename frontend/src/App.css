@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ghibli-sky: #5aa6c9;
+  --ghibli-cloud: #f0f5f9;
+  --ghibli-grass: #5d9554;
+  --ghibli-tree: #3d6e32;
+  --ghibli-paper: rgba(252, 250, 235, 0.85);
+  --ghibli-button: #f8c05a;
+  --ghibli-button-hover: #f7b43c;
+  --ghibli-text: #2d4135;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+  color: var(--ghibli-text);
+  background-image: url('/ghibli-background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+.ghibli-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  height: 100vh;
+  background-image: url('/bg2.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.ghibli-title {
+  text-align: center;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: 1.5rem;
+}
+
+.ghibli-subtitle {
+  text-align: center;
+  color: white;
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ghibli-card {
+  background-color: var(--ghibli-paper);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.ghibli-button {
+  background-color: var(--ghibli-button);
+  color: var(--ghibli-text);
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ghibli-button:hover {
+  background-color: var(--ghibli-button-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ghibli-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px dashed rgba(93, 149, 84, 0.5);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.ghibli-input:hover, .ghibli-input:focus {
+  border-color: var(--ghibli-grass);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.ghibli-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  border: 2px solid rgba(93, 149, 84, 0.3);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1.5rem;
+  font-family: monospace;
+  resize: vertical;
+}
+
+.ghibli-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.ghibli-logo {
+  height: 60px;
+  margin-right: 1rem;
+}
+
+.ghibli-icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.ghibli-icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.ghibli-result-card {
+  margin-top: 2rem;
+  background-color: var(--ghibli-paper);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ghibli-nav {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ghibli-nav-item {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.ghibli-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.ghibli-upload-area {
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.ghibli-upload-area:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.ghibli-upload-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.ghibli-footer {
+  text-align: center;
+  margin-top: 3rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+}
