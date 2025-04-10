@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 // Removed unused type definition
 // interface BackendConvertResponse {
 //   markdown: string;
@@ -12,91 +10,145 @@ export interface ConversionResult {
   markdown: string;
 }
 
-export const convertToMarkdown = async (
-  file: File // Accept a single file
-): Promise<ConversionResult | null> => {
-  // Removed accountId and apiToken checks
-  
-  console.log(`开始处理文件: ${file.name}...`);
+type ServiceType = 'cloudflare' | 'mistral';
 
+interface MistralFileResponse {
+  id: string;
+  object: string;
+  size_bytes: number;
+  created_at: number;
+  filename: string;
+  purpose: string;
+  deleted: boolean;
+}
+
+interface MistralSignedUrlResponse {
+  url: string;
+  expires_at: number;
+}
+
+interface MistralOcrResponse {
+  pages: {
+    index: number;
+    markdown: string;
+  }[];
+}
+
+async function uploadFileToMistral(file: File, mistralKey: string): Promise<string> {
   const formData = new FormData();
-  // Use the field name 'file' as expected by the backend
-  formData.append('file', file); 
-  console.log(`添加文件: ${file.name}, 类型: ${file.type}, 大小: ${file.size} 字节`);
+  formData.append('file', file);
+  formData.append('purpose', 'ocr');
 
-  // Our backend API endpoint
-  const url = '/api/convert'; 
-  console.log(`API URL: ${url}`);
+  const response = await fetch('https://api.mistral.ai/v1/files', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${mistralKey}`,
+    },
+    body: formData
+  });
 
-  // Use AbortController for timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
-
-  try {
-    console.log("发送后端 API 请求...");
-
-    const response = await fetch(url, {
-      method: "POST",
-      // No Authorization header needed here
-      // No mode or credentials needed for same-origin request via proxy
-      body: formData,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId); // Clear timeout
-
-    if (!response) {
-      throw new Error("网络请求失败 - 没有收到响应");
-    }
-
-    console.log(`后端 API 响应状态: ${response.status} ${response.statusText}`);
-
-    try {
-      const data = await response.json();
-      console.log("后端 API 响应数据:", data);
-
-      if (!response.ok) {
-        // Use error message from backend response if available
-        const errorMsg = `后端 API 错误: ${response.status} ${response.statusText}${data.error ? `\n消息: ${data.error}` : ''}`;
-        toast.error(errorMsg);
-        console.error("后端 API 错误详情:", data);
-        return null;
-      }
-      
-      // Check if the expected markdown field exists
-      if (typeof data.markdown !== 'string') {
-          toast.error("后端 API 错误: 响应中未找到有效的 Markdown 数据。");
-          console.error("无效的后端响应:", data);
-          return null;
-      }
-
-      console.log(`成功转换文件: ${file.name}`);
-      // Return the result in the new format
-      return { name: file.name, markdown: data.markdown };
-
-    } catch (error) {
-      console.error("后端 API 响应解析过程中发生错误:", error);
-      let errorMessage = "后端 API 响应解析过程中发生意外错误。";
-      if (error instanceof Error) {
-        errorMessage += ` 错误信息: ${error.message}`;
-      }
-      toast.error(errorMessage);
-      return null;
-    }
-  } catch (error) {
-    clearTimeout(timeoutId); // Ensure timeout is cleared
-    console.error("后端 API 调用过程中发生错误:", error);
-    let errorMessage = "调用后端 API 时发生意外错误。";
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        errorMessage = "API 请求超时，请检查网络连接或稍后重试。";
-      } else if (error.message.includes('Failed to fetch')) {
-        errorMessage = "无法连接到后端 API 服务器，请确认服务已运行。";
-      } else {
-        errorMessage += ` 错误信息: ${error.message}`;
-      }
-    }
-    toast.error(errorMessage);
-    return null;
+  if (!response.ok) {
+    throw new Error(`文件上传失败: ${response.statusText}`);
   }
-}; 
+
+  const fileData: MistralFileResponse = await response.json();
+  return fileData.id;
+}
+
+async function getMistralSignedUrl(fileId: string, mistralKey: string): Promise<string> {
+  const response = await fetch(`https://api.mistral.ai/v1/files/${fileId}/url?expiry=24`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${mistralKey}`,
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`获取签名URL失败: ${response.statusText}`);
+  }
+
+  const urlData: MistralSignedUrlResponse = await response.json();
+  return urlData.url;
+}
+
+async function processMistralOcr(documentUrl: string, mistralKey: string, isImage: boolean = false): Promise<string> {
+  const response = await fetch('https://api.mistral.ai/v1/ocr', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${mistralKey}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-ocr-latest',
+      document: {
+        type: isImage ? 'image_url' : 'document_url',
+        [isImage ? 'image_url' : 'document_url']: documentUrl,
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`OCR处理失败: ${response.statusText}`);
+  }
+
+  const ocrData: MistralOcrResponse = await response.json();
+  // 合并所有页面的markdown内容
+  return ocrData.pages.map(page => page.markdown).join('\n\n');
+}
+
+export async function convertToMarkdown(
+  files: File[],
+  accountId: string,
+  apiToken: string,
+  mistralKey: string,
+  serviceType: ServiceType
+): Promise<ConversionResult[]> {
+  const results: ConversionResult[] = [];
+
+  for (const file of files) {
+    try {
+      let markdown = '';
+
+      if (serviceType === 'cloudflare') {
+        // 使用 Cloudflare API
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`/api/cloudflare/convert`, {
+          method: 'POST',
+          headers: {
+            'x-account-id': accountId,
+            'x-api-token': apiToken,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Cloudflare API 错误: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        markdown = data.markdown;
+      } else {
+        // 使用 Mistral API
+        const fileId = await uploadFileToMistral(file, mistralKey);
+        const signedUrl = await getMistralSignedUrl(fileId, mistralKey);
+        
+        // 根据文件类型决定使用哪种处理方式
+        const isImage = file.type.startsWith('image/');
+        markdown = await processMistralOcr(signedUrl, mistralKey, isImage);
+      }
+
+      results.push({
+        name: file.name,
+        markdown,
+      });
+    } catch (error) {
+      console.error(`处理文件 ${file.name} 时出错:`, error);
+      throw error;
+    }
+  }
+
+  return results;
+} 

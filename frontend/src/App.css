@@ -18,18 +18,13 @@ body {
   padding: 0;
   font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
   color: var(--ghibli-text);
-  background-image: url('/ghibli-background.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  min-height: 100vh;
 }
 
 .ghibli-container {
-  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   height: 100vh;
+  box-sizing: border-box;
   background-image: url('/bg2.png');
   background-size: cover;
   background-position: center;
@@ -56,6 +51,7 @@ body {
 .ghibli-card {
   background-color: var(--ghibli-paper);
   border-radius: 12px;
+  max-width: 800px;
   padding: 2rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
@@ -168,7 +164,8 @@ body {
   border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
-  margin-bottom: 2rem;
+  max-width: 700px;
+  margin: 2rem auto;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(4px);
   transition: all 0.3s ease;
