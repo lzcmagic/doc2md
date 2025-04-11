@@ -12,10 +12,12 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // 监听所有地址，包括局域网和公网地址
+    port: 5174,
     proxy: {
       // 将所有 /api 请求代理到我们的 Express 服务器
       '/api': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://0.0.0.0:3000',
         changeOrigin: true,
         secure: false,
       }

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { convertToMarkdown } from '@/lib/api';
-import { Upload, Copy, FileText, CloudUpload, CloudIcon, BrainCircuit } from 'lucide-react';
+import { Copy, FileText, CloudUpload, CloudIcon, BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ConversionResult {

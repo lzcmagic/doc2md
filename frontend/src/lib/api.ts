@@ -35,6 +35,7 @@ interface MistralOcrResponse {
 }
 
 async function uploadFileToMistral(file: File, mistralKey: string): Promise<string> {
+  console.log(`[Mistral Upload] File Name: ${file.name}, Detected MIME Type: ${file.type}`); // 打印文件类型
   const formData = new FormData();
   formData.append('file', file);
   formData.append('purpose', 'ocr');
@@ -48,7 +49,21 @@ async function uploadFileToMistral(file: File, mistralKey: string): Promise<stri
   });
 
   if (!response.ok) {
-    throw new Error(`文件上传失败: ${response.statusText}`);
+    let errorDetails = response.statusText;
+    try {
+      // 尝试读取 Mistral 返回的 JSON 错误详情
+      const errorJson = await response.json(); 
+      errorDetails = JSON.stringify(errorJson);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      // 如果响应不是 JSON，尝试读取文本
+      try {
+        errorDetails = await response.text();
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (e2) { /* 忽略读取错误 */ }
+    }
+    console.error('Mistral API 文件上传错误详情:', errorDetails); // 添加详细日志
+    throw new Error(`文件上传失败: ${errorDetails}`);
   }
 
   const fileData: MistralFileResponse = await response.json();
@@ -97,6 +112,18 @@ async function processMistralOcr(documentUrl: string, mistralKey: string, isImag
   return ocrData.pages.map(page => page.markdown).join('\n\n');
 }
 
+const getApiBaseUrl = () => {
+  // 在开发环境（通过Vite代理）或生产环境（Docker内）确定API基础URL
+  if (import.meta.env.MODE === 'development') {
+    // 开发环境使用相对路径，让Vite代理处理
+    return '';
+  } else {
+    // 生产环境直接指向后端服务的端口和路径
+    // 假设后端服务在容器内部的3000端口
+    return 'http://localhost:3000'; // Docker容器内部通过localhost访问
+  }
+};
+
 export async function convertToMarkdown(
   files: File[],
   accountId: string,
@@ -105,6 +132,7 @@ export async function convertToMarkdown(
   serviceType: ServiceType
 ): Promise<ConversionResult[]> {
   const results: ConversionResult[] = [];
+  const apiBaseUrl = getApiBaseUrl();
 
   for (const file of files) {
     try {
@@ -115,7 +143,7 @@ export async function convertToMarkdown(
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`/api/cloudflare/convert`, {
+        const response = await fetch(`${apiBaseUrl}/api/cloudflare/convert`, {
           method: 'POST',
           headers: {
             'x-account-id': accountId,
@@ -125,7 +153,13 @@ export async function convertToMarkdown(
         });
 
         if (!response.ok) {
-          throw new Error(`Cloudflare API 错误: ${response.statusText}`);
+          // 尝试读取错误响应体
+          let errorBody = '未知错误';
+          try {
+            errorBody = await response.text();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (e) { /* 忽略读取错误 */ }
+          throw new Error(`Cloudflare API 错误: ${response.status} ${response.statusText}. 响应: ${errorBody}`);
         }
 
         const data = await response.json();
@@ -146,7 +180,8 @@ export async function convertToMarkdown(
       });
     } catch (error) {
       console.error(`处理文件 ${file.name} 时出错:`, error);
-      throw error;
+      // 抛出更详细的错误信息
+      throw new Error(`处理文件 ${file.name} 时出错: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

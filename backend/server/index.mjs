@@ -126,7 +126,7 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 const PORT = process.env.PORT || 3000;
-const HOST = '127.0.0.1';
-app.listen(PORT, HOST, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(Number(PORT), HOST, () => {
   console.log(`API 服务器运行在 http://${HOST}:${PORT}`);
 });
