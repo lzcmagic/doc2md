@@ -125,8 +125,14 @@ app.use((err, req, res, next) => {
 });
 
 // 启动服务器
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
-app.listen(Number(PORT), HOST, () => {
-  console.log(`API 服务器运行在 http://${HOST}:${PORT}`);
-});
+// 只有在非 Vercel 环境下才启动服务器监听
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  const HOST = process.env.HOST || '0.0.0.0';
+  app.listen(Number(PORT), HOST, () => {
+    console.log(`API 服务器运行在 http://${HOST}:${PORT}`);
+  });
+}
+
+// 始终导出 app 实例，供 Vercel 或其他可能需要导入它的环境使用
+export default app;
