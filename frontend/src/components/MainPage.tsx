@@ -72,41 +72,56 @@ const MainPage: React.FC<MainPageProps> = ({ accountId, apiToken, mistralApiKey 
   };
 
   const handleFiles = (files: File[]) => {
-    // 根据不同服务验证文件类型
+    // 步骤 1: 在验证前添加日志
+    files.forEach(file => {
+      console.log(`[File Check] Name: ${file.name}, Type: ${file.type}`);
+    });
+
+    // 步骤 2: 修改验证逻辑
     const invalidFiles = files.filter(file => {
+      let isSupported = false;
+      const fileNameLower = file.name.toLowerCase(); // 转为小写以忽略后缀大小写
+
       if (serviceType === 'cloudflare') {
-        // Cloudflare 支持的文件类型
         const supportedTypes = [
-          'application/pdf',
-          'image/jpeg',
-          'image/png',
-          'image/webp',
-          'image/svg+xml',
-          'text/html',
-          'application/xml',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'application/vnd.ms-excel.sheet.macroenabled.12',
-          'application/vnd.ms-excel.sheet.binary.macroenabled.12',
-          'application/vnd.ms-excel',
-          'application/vnd.oasis.opendocument.spreadsheet',
-          'text/csv',
-          'application/vnd.apple.numbers'
+          'application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/svg+xml',
+          'text/html', 'application/xml',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel.sheet.macroenabled.12', // .xlsm
+          'application/vnd.ms-excel.sheet.binary.macroenabled.12', // .xlsb
+          'application/vnd.ms-excel', // .xls
+          'application/vnd.oasis.opendocument.spreadsheet', // .ods
+          'text/csv', // .csv
+          'application/vnd.apple.numbers' // .numbers
         ];
-        return !supportedTypes.includes(file.type);
-      } else {
-        // Mistral 支持 PDF 和图片
+        const supportedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.svg', '.html', '.xml', '.xlsx', '.xlsm', '.xlsb', '.xls', '.ods', '.csv', '.numbers'];
+
+        // 优先检查 MIME 类型
+        isSupported = supportedTypes.includes(file.type);
+
+        // 如果 MIME 类型不匹配或为空，则检查后缀名
+        if (!isSupported || file.type === "") {
+          isSupported = supportedExtensions.some(ext => fileNameLower.endsWith(ext));
+        }
+
+      } else { // serviceType === 'mistral'
         const supportedTypes = [
-          'application/pdf',
-          'image/jpeg',
-          'image/png',
-          'image/webp'
+          'application/pdf', 'image/jpeg', 'image/png', 'image/webp'
         ];
-        return !supportedTypes.includes(file.type);
+        const supportedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+
+        isSupported = supportedTypes.includes(file.type);
+        if (!isSupported || file.type === "") {
+          isSupported = supportedExtensions.some(ext => fileNameLower.endsWith(ext));
+        }
       }
+      // 如果不支持 (isSupported 为 false)，则返回 true (表示它是无效文件)
+      return !isSupported;
     });
 
     if (invalidFiles.length > 0) {
-      toast.error(`不支持的文件类型: ${invalidFiles.map(f => f.name).join(', ')}`);
+      // 更新错误消息
+      toast.error(`不支持的文件类型或无法识别的文件: ${invalidFiles.map(f => f.name).join(', ')}`);
       return;
     }
 
