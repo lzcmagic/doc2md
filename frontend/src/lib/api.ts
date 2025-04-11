@@ -113,15 +113,9 @@ async function processMistralOcr(documentUrl: string, mistralKey: string, isImag
 }
 
 const getApiBaseUrl = () => {
-  // 在开发环境（通过Vite代理）或生产环境（Docker内）确定API基础URL
-  if (import.meta.env.MODE === 'development') {
-    // 开发环境使用相对路径，让Vite代理处理
-    return '';
-  } else {
-    // 生产环境直接指向后端服务的端口和路径
-    // 假设后端服务在容器内部的3000端口
-    return 'http://0.0.0.0:3000'; // Docker容器内部通过localhost访问
-  }
+  // 总是返回相对路径，让浏览器向当前域（由Nginx处理）发送请求
+  // Nginx 会根据 location 配置将请求转发给前端或后端服务
+  return ''; 
 };
 
 export async function convertToMarkdown(
@@ -132,17 +126,18 @@ export async function convertToMarkdown(
   serviceType: ServiceType
 ): Promise<ConversionResult[]> {
   const results: ConversionResult[] = [];
-  const apiBaseUrl = getApiBaseUrl();
+  const apiBaseUrl = getApiBaseUrl(); // 现在总是返回 ''
 
   for (const file of files) {
     try {
       let markdown = '';
 
       if (serviceType === 'cloudflare') {
-        // 使用 Cloudflare API
+        // 使用 Cloudflare API - 确保路径包含 /api/ 前缀
         const formData = new FormData();
         formData.append('file', file);
 
+        // 使用 /api/cloudflare/convert 路径
         const response = await fetch(`${apiBaseUrl}/api/cloudflare/convert`, {
           method: 'POST',
           headers: {
@@ -165,11 +160,10 @@ export async function convertToMarkdown(
         const data = await response.json();
         markdown = data.markdown;
       } else {
-        // 使用 Mistral API
+        // 使用 Mistral API (这部分直接调用 Mistral，不受 Nginx 代理影响)
         const fileId = await uploadFileToMistral(file, mistralKey);
         const signedUrl = await getMistralSignedUrl(fileId, mistralKey);
         
-        // 根据文件类型决定使用哪种处理方式
         const isImage = file.type.startsWith('image/');
         markdown = await processMistralOcr(signedUrl, mistralKey, isImage);
       }
@@ -180,7 +174,6 @@ export async function convertToMarkdown(
       });
     } catch (error) {
       console.error(`处理文件 ${file.name} 时出错:`, error);
-      // 抛出更详细的错误信息
       throw new Error(`处理文件 ${file.name} 时出错: ${error instanceof Error ? error.message : String(error)}`);
     }
   }

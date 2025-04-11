@@ -1,0 +1,36 @@
+# === Frontend Build Stage ===
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Context is root, copy necessary root files directly
+COPY package*.json .npmrc* ./
+COPY vite.config.js ./
+COPY tsconfig*.json ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY eslint.config.js ./
+
+# Copy frontend source code from the frontend subdirectory
+COPY frontend/public ./frontend/public
+COPY frontend/src ./frontend/src
+COPY frontend/index.html ./frontend/index.html
+
+# Install dependencies based on root package.json
+RUN npm ci
+
+# Change WORKDIR to the frontend directory *before* building
+WORKDIR /app/frontend
+
+# Build the frontend. Vite should run in /app/frontend
+# and find index.html, src, public relative to this WORKDIR.
+RUN npm run build
+
+# === Frontend Final Stage ===
+FROM nginx:stable-alpine AS frontend
+
+# Copy built assets from the builder stage
+# The output should be in /app/frontend/dist because build ran in /app/frontend
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+
+EXPOSE 80 
