@@ -120,7 +120,7 @@ const getApiBaseUrl = () => {
   } else {
     // 生产环境直接指向后端服务的端口和路径
     // 假设后端服务在容器内部的3000端口
-    return 'http://10.108.128.219:3000'; // Docker容器内部通过localhost访问
+    return 'http://0.0.0.0:3000'; // Docker容器内部通过localhost访问
   }
 };
 
