@@ -128,6 +128,7 @@ const MainPage: React.FC<MainPageProps> = ({ accountId, apiToken, mistralApiKey 
       const files: File[] = Array.from(event.target.files);
       handleFiles(files);
     }
+    console.log("Handling file change"); // Add log
   };
 
   const handleServiceChange = (type: ServiceType): void => {
@@ -162,32 +163,58 @@ const MainPage: React.FC<MainPageProps> = ({ accountId, apiToken, mistralApiKey 
     }
   }, [selectedFiles, accountId, apiToken, mistralApiKey, serviceType]);
 
-  const copyToClipboard = (text: string, fileName: string): void => {
-    const button = document.getElementById(`copy-button-${fileName}`);
-    if (button) {
-      const originalContent = button.innerHTML;
-      button.innerHTML = `
-        <svg class="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>已复制</span>
-      `;
-      button.classList.add('bg-green-500', 'hover:bg-green-600', 'text-white', 'border-green-500');
-      
-      setTimeout(() => {
-        button.innerHTML = originalContent;
-        button.classList.remove('bg-green-500', 'hover:bg-green-600', 'text-white', 'border-green-500');
-      }, 2000);
+  const copyToClipboard = async (text: string, fileName: string): Promise<void> => {
+    // 优先尝试现代、安全的 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success(`已复制 ${fileName} 的内容到剪贴板 (安全)`);
+        return; // 成功则直接返回
+      } catch (err) {
+        console.error('使用 Clipboard API 复制失败:', err);
+        // Clipboard API 失败通常不是因为上下文不安全，而是其他原因 (如权限)
+        toast.error(`复制 ${fileName} 失败: ${err instanceof Error ? err.message : '未知错误'}`);
+        return; // 失败也直接返回
+      }
     }
 
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        toast.success(`已复制 ${fileName} 的内容到剪贴板`);
-      })
-      .catch(err => {
-        console.error('复制失败:', err);
-        toast.error('复制失败，请手动复制');
-      });
+    // --- 后备方案：使用 document.execCommand ---
+    console.warn('Clipboard API 不可用或上下文不安全，尝试使用已废弃的 document.execCommand 作为后备。');
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // 将 textarea 移到屏幕外并确保其可见性足够执行命令
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.width = "1px"; // 避免影响布局
+    textArea.style.height = "1px";
+    textArea.style.padding = "0";
+    textArea.style.border = "none";
+    textArea.style.outline = "none";
+    textArea.style.boxShadow = "none";
+    textArea.style.background = "transparent";
+
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select(); // 选中 textarea 中的内容
+
+    try {
+      const successful = document.execCommand('copy'); // 执行复制命令
+      if (successful) {
+        toast.success(`已复制 ${fileName} 的内容到剪贴板 (后备)`);
+      } else {
+        // 如果 execCommand 返回 false，也视为错误
+        throw new Error('document.execCommand 返回 false');
+      }
+    } catch (err) {
+      console.error('使用 document.execCommand 复制失败:', err);
+      toast.error(`复制 ${fileName} 失败，浏览器不支持或操作被阻止。请手动复制。`);
+    } finally {
+      // 无论成功与否，都清理临时元素
+      document.body.removeChild(textArea);
+    }
   };
 
   return (

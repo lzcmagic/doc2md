@@ -23,7 +23,7 @@ body {
 .ghibli-container {
   margin: 0 auto;
   padding: 2rem;
-  height: 100vh;
+  min-height: 100vh;
   box-sizing: border-box;
   background-image: url('/bg2.png');
   background-size: cover;
