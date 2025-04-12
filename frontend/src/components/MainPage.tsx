@@ -172,7 +172,8 @@ const MainPage: React.FC<MainPageProps> = ({ accountId, apiToken, mistralApiKey 
       }
     } catch (error) {
       console.error('转换过程中发生错误:', error);
-      toast.error('转换过程中发生错误，请查看控制台了解详情。');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`转换失败: ${errorMessage}`);
     } finally {
       setIsConverting(false);
     }
